@@ -66,17 +66,27 @@ model = VSSM(**mamba_params)
 # model = UNet(n_channels=3, n_classes=4)
 
 # 预训练模型
-# checkpoint = 'https://github.com/milesial/Pytorch-UNet/releases/download/v3.0/unet_carvana_scale0.5_epoch2.pth'
-# load_dict = torch.hub.load_state_dict_from_url(checkpoint, progress=True)
-# model_dict = model.state_dict()
+checkpoint = 'https://github.com/MzeroMiko/VMamba/releases/download/%23v2seg/upernet_vssm_4xb4-160k_ade20k-512x512_tiny_s_iter_160000.pth'
+load_dict = torch.hub.load_state_dict_from_url(checkpoint, progress=True)
+model_dict = model.state_dict()
+n = 0
+#对比load_dict和model_dict
+for key in load_dict.keys():
+    if key in model_dict:
+        print(f"Key '{key}' is present in both load_dict and model_dict.")
+        n += 1
+    else:
+        print(f"Key '{key}' is missing in model_dict.")
 
-# for key, value in load_dict.items():
-#     if 'outc' not in key: 
-#         model_dict[key] = value
+print(n)
+'''
+for key, value in load_dict.items():
+    if 'final' not in key: 
+        model_dict[key] = value
 
-# model.load_state_dict(model_dict)
+model.load_state_dict(model_dict)
 
-# print('load pre-trained model weight success')
+print('load pre-trained model weight success')
 
 
 ce_loss = nn.CrossEntropyLoss()
@@ -174,3 +184,4 @@ for epoch in range(num_epochs):
 final_model_path = os.path.join(checkpoint_dir, 'final_model.pth')
 torch.save(model.state_dict(), final_model_path)
 print("Final model saved.")
+'''

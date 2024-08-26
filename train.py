@@ -13,6 +13,7 @@ from loss.GDiceLoss import GDiceLoss
 from torch.utils.data import DataLoader, Dataset, SubsetRandomSampler
 from model.unet import UNet
 from model.vmamba import VSSM
+from model.vmunet import VMUNet
 
 
 
@@ -57,18 +58,42 @@ print(f"train_loader loader length: {len(train_loader)}")
 mamba_params = {
     'in_chans': 3, 
     'num_classes': 4, 
-    'depths': [2, 2, 9, 2], 
+    'depths': [ 2, 2, 15, 2 ], 
     'dims': [96, 192, 384, 768],
 }
-
+model_cfg = {
+    'num_classes': 1, 
+    'input_channels': 3, 
+    # ----- VM-UNet ----- #
+    'depths': [2,2,2,2],
+    'depths_decoder': [2,2,2,1],
+    'drop_path_rate': 0.2,
+    'load_ckpt_path': './checkpoints/vmamba_small_e238_ema.pth',
+}
+model = VMUNet(
+num_classes=model_cfg['num_classes'],
+input_channels=model_cfg['input_channels'],
+depths=model_cfg['depths'],
+depths_decoder=model_cfg['depths_decoder'],
+drop_path_rate=model_cfg['drop_path_rate'],
+load_ckpt_path=model_cfg['load_ckpt_path'],
+)
+model.load_from()
+# print('load pre-trained model weight success')
 # 初始化模型、损失函数和优化器
-model = VSSM(**mamba_params)
+# model = VSSM(**mamba_params)
 # model = UNet(n_channels=3, n_classes=4)
+
 
 # 预训练模型
 # checkpoint = 'https://github.com/milesial/Pytorch-UNet/releases/download/v3.0/unet_carvana_scale0.5_epoch2.pth'
 # load_dict = torch.hub.load_state_dict_from_url(checkpoint, progress=True)
+# checkpoint_path = './checkpoints/vssm_base_0229_ckpt_epoch_237.pth'
+# load_dict = torch.load(checkpoint_path)['model']
 # model_dict = model.state_dict()
+
+# for key1, key2 in zip(load_dict.keys(), model_dict.keys()):
+#     print(key1, key2)
 
 # for key, value in load_dict.items():
 #     if 'outc' not in key: 
@@ -76,7 +101,7 @@ model = VSSM(**mamba_params)
 
 # model.load_state_dict(model_dict)
 
-# print('load pre-trained model weight success')
+
 
 
 ce_loss = nn.CrossEntropyLoss()

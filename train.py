@@ -14,6 +14,7 @@ from torch.utils.data import DataLoader, Dataset, SubsetRandomSampler
 from model.unet import UNet
 from model.vmamba import VSSM
 from model.vmunet import VMUNet
+from torch.optim.lr_scheduler import CosineAnnealingLR
 
 
 
@@ -35,6 +36,8 @@ shuffle_dataset = True
 random_seed = 42
 
 dataset_size = len(dataset)
+
+
 indices = list(range(dataset_size))
 split = int(np.floor(validation_split * dataset_size))
 if shuffle_dataset:
@@ -62,7 +65,7 @@ mamba_params = {
     'dims': [96, 192, 384, 768],
 }
 model_cfg = {
-    'num_classes': 1, 
+    'num_classes': 4, 
     'input_channels': 3, 
     # ----- VM-UNet ----- #
     'depths': [2,2,2,2],
@@ -117,6 +120,11 @@ model.to(device)
 num_epochs = 200
 checkpoint_dir = 'checkpoints'
 os.makedirs(checkpoint_dir, exist_ok=True)
+
+# 设置学习率调度器
+batches_per_epoch = dataset_size // batch_size
+T_max = num_epochs * batches_per_epoch
+scheduler = CosineAnnealingLR(optimizer, T_max, eta_min=1e-5) 
 
 for epoch in range(num_epochs):
     model.train()
@@ -192,6 +200,8 @@ for epoch in range(num_epochs):
     # print(f'Epoch {epoch+1}/{num_epochs}, Training Loss: {epoch_loss:.4f}, Validation Loss: {val_loss:.4f}, Training Dice: {epoch_dice:.4f}, Validation Dice: {val_dice:.4f}, Training Jaccard: {epoch_jaccard:.4f}, Validation Jaccard: {val_jaccard:.4f}')
     print(f'Epoch {epoch+1}/{num_epochs}, Training Loss: {epoch_loss:.4f}, Validation Loss: {val_loss:.4f}, Training Dice: {epoch_dice}, Validation Dice: {val_dice}')
 
+    scheduler.step()
+
     if (epoch + 1) % 10 == 0:
         checkpoint_path = os.path.join(checkpoint_dir, f'model_epoch_{epoch+1:02d}.pth')
         torch.save(model.state_dict(), checkpoint_path)
@@ -199,3 +209,4 @@ for epoch in range(num_epochs):
 final_model_path = os.path.join(checkpoint_dir, 'final_model.pth')
 torch.save(model.state_dict(), final_model_path)
 print("Final model saved.")
+
